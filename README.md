@@ -117,10 +117,6 @@ See an step 6.3 and 7 in the Dockerfile for an example.
 
 - Note1: Make sure the package name ends with "_msgs".
 - Note2: Use the same package name for both ROS1 and ROS2.
-
-Also see the [troubleshoot section](#checking-example-custom-message).
-
-- ref: https://github.com/TommyChangUMD/custom_msgs.git
 - ref: https://github.com/ros2/ros1_bridge/blob/master/doc/index.rst
 
 
