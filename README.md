@@ -13,7 +13,7 @@ Create a "*ros-humble-ros1-bridge*" package with support for `mavros_msgs` that 
 
 To build without support for ros-tutorials
 ``` bash
-  docker build . --build-arg ADD_ros_tutorials=0 -t ros-humble-ros1-bridge-builder
+  docker build . --build-arg ADD_ros_tutorials=0 -t ros-humble-ros1-bridge-mavros-builder
 ```
 - Note: Don't forget to install the necessary `ros-humble-mavros` packages on your ROS2 Humble in the environment you intend to run the bridge on.
 
@@ -24,7 +24,7 @@ To build without support for ros-tutorials
     cd ~/
     apt update; apt upgrade
     apt -y install ros-humble-desktop
-    docker run --network host --rm ros-humble-ros1-bridge-builder | tar xvzf -
+    docker run --network host --rm ros-humble-ros1-bridge-mavros-builder | tar xvzf -
 ```
 
 - Note1: It's **important** that you have **`ros-humble-desktop`** installed on your ROS2 Humble system because we want to **match it with the builder image as closely as possible**.  So, if you haven't done so already, do:
