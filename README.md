@@ -1,48 +1,21 @@
-# ros-humble-ros1-bridge-builder
-Create a "*ros-humble-ros1-bridge*" package that can be used directly within Ubuntu 22.02 (Jammy) ROS2 Humble. Both amd64 and arm64 architectures are supported.
-
-- Note1: It takes approximately 10 minutes on my PC, equipped with a 6-core CPU (12 logical cores) and 24GB of memory.
-
-- Note2: It takes about 1 GB of memory per logical CPU core to compile the ROS1 bridge. So, if your system has only 4 GB of memory but 100 logical CPU cores, it will still use only 4 logical cores for the compilation. Now, why does it take so much memory to compile?  Well, you can blame the overuse of C++ templates...
-
-- Note3: If you are looking for ROS2 Jazzy + Ubuntu 24.04 support, see https://github.com/TommyChangUMD/ros-jazzy-ros1-bridge-builder
+# ros-humble-ros1-bridge-mavros-builder
+Create a "*ros-humble-ros1-bridge*" package with support for `mavros_msgs` that can be used directly within Ubuntu 22.02 (Jammy) ROS2 Humble. Both amd64 and arm64 architectures are supported.
 
 ## How to create this builder docker images:
 
 ``` bash
-  git clone https://github.com/TommyChangUMD/ros-humble-ros1-bridge-builder.git
-  cd ros-humble-ros1-bridge-builder
+  git clone https://github.com/nikhilhenry/ros-humble-ros1-bridge-mavros-builder.git
+  cd ros-humble-ros1-bridge-mavros-builder
 
   # By default, ros-tutorals support will be built: (bridging the ros-humble-example-interfaces package)
-  docker build . -t ros-humble-ros1-bridge-builder --network host
+  docker build . -t ros-humble-ros1-bridge-mavros-builder --network host
 ```
 
-- Note1: Since building a docker image just needs docker, you could do this step on any system that has docker installed -- it doesn't have to on a Ubuntu 22.04 (Jammy) and it doesn't need ROS2 neither.
-
-- Note2: The builder image can be created on an amd64 machine (e.g., Intel and AMD CPUs) or an arm64 machine (e.g., Raspberry Pi 4B and Nvidia Jetson Orin).  Docker will automatically select the correct platform variant based on the host's architecture.
-
-
-Alternative builds:
+To build without support for ros-tutorials
 ``` bash
-  # **[OPTIONAL]** If you don't want to build ros-tutorals support:
   docker build . --build-arg ADD_ros_tutorials=0 -t ros-humble-ros1-bridge-builder
-
-  # **[OPTIONAL]** If you want to build grid-map support:  (bridging the ros-humble-grid-map package)
-  docker build . --build-arg ADD_grid_map=1 -t ros-humble-ros1-bridge-builder
-
-  # **[OPTIONAL]** If you want to build an example custom message:
-  docker build . --build-arg ADD_example_custom_msgs=1 -t ros-humble-ros1-bridge-builder
-
-  # **[OPTIONAL]** If you want to build octomap:
-  docker build . --build-arg ADD_octomap_msgs=1 -t ros-humble-ros1-bridge-builder
-
-  # **[OPTIONAL]** If you want to build octomap and grid-map together:
-  docker build . --build-arg ADD_octomap_msgs=1 --build-arg ADD_grid_map=1 -t ros-humble-ros1-bridge-builder
-
 ```
-- Note1: Don't forget to install the necessary `ros-humble-grid-map` packages on your ROS2 Humble if you choose to build the bridge with the `grid-map` support added.
-
-- Note2: For the custom message example, there is no pre-build package for ROS2 Humble so you will need to compile it from the source.  For details, see [Checking example custom message](#checking-example-custom-message) in the Troubleshoot section.
+- Note: Don't forget to install the necessary `ros-humble-mavros` packages on your ROS2 Humble in the environment you intend to run the bridge on.
 
 ## How to create ros-humble-ros1-bridge package:
 ###  0.) Start from the latest Ubuntu 22.04 (Jammy) ROS 2 Humble Desktop system, create the "ros-humble-ros1-bridge/" ROS2 package:
@@ -65,19 +38,22 @@ Otherwise you may get an error about missing `ibexample_interfaces__rosidl_types
 
 - Note2: The assumption is that this tarball contains configurations and libraries matching your ROS2 Humble system very closely, although not identical.
 
-- Note3: We don't really need the builder image anymore, to delete it, do:
+## How to use ros-humble-ros1-bridge:
 
-``` bash
-    docker rmi ros-humble-ros1-bridge-builder
+The package can be used by sourcing the workspace as an underlay in the ROS2 system.
+
+```bash
+source ros-humble-ros1-bridge/install/local_setup.bash
 ```
 
-## How to use ros-humble-ros1-bridge:
-###  1.) First start a ROS1 Noetic docker and bring up a GUI terminal, something like:
+To test the package, an instance running ROS1 and another running ROS2 will have to communicate with each other. This can be done either on the same OS through [RoboStack](https://robostack.github.io/) or two different Docker containers.
 
-``` bash
-  rocker --x11 --user --privileged --persist-image \
-         --volume /dev/shm /dev/shm --network=host -- ros:noetic-ros-base-focal \
-         'bash -c "sudo apt update; sudo apt install -y ros-noetic-rospy-tutorials tilix; tilix"'
+The following instructions demonstrate how to test the package using [rocker](https://github.com/osrf/rocker).
+
+```bash
+rocker --x11 --user --privileged --persist-image \
+     --volume /dev/shm /dev/shm --network=host -- ros:noetic-ros-base-focal \
+     'bash -c "sudo apt update; sudo apt install -y ros-noetic-rospy-tutorials tilix; tilix"'
 ```
 
 Tha docker image used above, `ros:noetic-ros-base-focal`, is multi-platform.  It runs on amd64 (eg., Intel and AMD CPUs) or arm64 architecture (eg., Raspberry PI 4B and Nvidia Jetson Orin).  Docker will automatically select the correct platform variant based on the host's architecture.
@@ -192,50 +168,18 @@ $ ros2 run ros1_bridge dynamic_bridge --print-pairs | grep -i addtwoints
   - 'example_interfaces/srv/AddTwoInts' (ROS 2) <=> 'rospy_tutorials/AddTwoInts' (ROS 1)
 ```
 
-### Checking grid-map message / service:
-- Must have `--build-arg ADD_grid_map=1` added to the `docker build ...` command.
-- Note: In addition, the ROS2 Humble system must have the `ros-humble-grid-map` package installed.
+### Checking mavros message / service:
+- Note: The ROS2 Humble system must have the `ros-humble-mavros` package installed.
 ``` bash
-$ sudo apt -y install ros-humble-grid-map
-$ ros2 run ros1_bridge dynamic_bridge --print-pairs | grep -i grid_map
-  - 'grid_map_msgs/msg/GridMap' (ROS 2) <=> 'grid_map_msgs/GridMap' (ROS 1)
-  - 'grid_map_msgs/msg/GridMapInfo' (ROS 2) <=> 'grid_map_msgs/GridMapInfo' (ROS 1)
-  - 'grid_map_msgs/srv/GetGridMap' (ROS 2) <=> 'grid_map_msgs/GetGridMap' (ROS 1)
-  - 'grid_map_msgs/srv/GetGridMapInfo' (ROS 2) <=> 'grid_map_msgs/GetGridMapInfo' (ROS 1)
-  - 'grid_map_msgs/srv/ProcessFile' (ROS 2) <=> 'grid_map_msgs/ProcessFile' (ROS 1)
-  - 'grid_map_msgs/srv/SetGridMap' (ROS 2) <=> 'grid_map_msgs/SetGridMap' (ROS 1)
+$ sudo apt -y install ros-humble-mavros
+$ ros2 run ros1_bridge dynamic_bridge --print-pairs | grep -i mavros
+  - 'mavros_msgs/msg/ADSBVehicle' (ROS 2) <=> 'mavros_msgs/ADSBVehicle' (ROS 1)
+  - 'mavros_msgs/msg/ActuatorControl' (ROS 2) <=> 'mavros_msgs/ActuatorControl' (ROS 1)
+  - 'mavros_msgs/msg/Altitude' (ROS 2) <=> 'mavros_msgs/Altitude' (ROS 1)
+  - 'mavros_msgs/msg/AttitudeTarget' (ROS 2) <=> 'mavros_msgs/AttitudeTarget' (ROS 1)
+  - 'mavros_msgs/msg/CamIMUStamp' (ROS 2) <=> 'mavros_msgs/CamIMUStamp' (ROS 1)
+  - 'mavros_msgs/msg/CameraImageCaptured' (ROS 2) <=> 'mavros_msgs/CameraImageCaptured' (ROS 1)
 ```
-
-### Checking example custom message:
-- Thanks to [Codaero](https://github.com/Codaero) for the source code for an custom message example.
-- Must have `--build-arg ADD_example_custom_msgs=1` added to the `docker build ...` command.
-``` bash
-# First, install the ROS2 pacakge from the source
-$ git clone https://github.com/TommyChangUMD/custom_msgs.git
-$ cd custom_msgs/custom_msgs_ros2
-$ source /opt/ros/humble/setup.bash
-$ colcon build
-$ source install/setup.bash
-
-# Now, run the bridge
-$ source ~/ros-humble-ros1-bridge/install/local_setup.bash
-$ ros2 run ros1_bridge dynamic_bridge --print-pairs | grep -i PseudoGridMap
-  - 'custom_msgs/msg/PseudoGridMap' (ROS 2) <=> 'custom_msgs/PseudoGridMap' (ROS 1)
-```
-
-### Checking octomap message:
-- Must have `--build-arg ADD_octomap_msgs=1` added to the `docker build ...` command.
-- Note: In addition, the ROS2 Humble system must have the `ros-humble-octomap-msgs` package installed.
-``` bash
-$ sudo apt -y install ros-humble-octomap-msgs
-$ ros2 run ros1_bridge dynamic_bridge --print-pairs | grep -i octomap
-  - 'octomap_msgs/msg/Octomap' (ROS 2) <=> 'octomap_msgs/Octomap' (ROS 1)
-  - 'octomap_msgs/msg/OctomapWithPose' (ROS 2) <=> 'octomap_msgs/OctomapWithPose' (ROS 1)
-  - 'octomap_msgs/srv/BoundingBoxQuery' (ROS 2) <=> 'octomap_msgs/BoundingBoxQuery' (ROS 1)
-  - 'octomap_msgs/srv/GetOctomap' (ROS 2) <=> 'octomap_msgs/GetOctomap' (ROS 1)
-```
-
-
 ## References
 - https://github.com/ros2/ros1_bridge
 - https://github.com/ros2/ros1_bridge/blob/master/doc/index.rst
